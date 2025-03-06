@@ -12,23 +12,50 @@ import (
 // Список публичных маршрутов, доступных без авторизации
 var publicRoutes = []string{
 	"/health",
+	"/swagger/*",
 	"/auth/register",
 	"/auth/verify-registration",
 	"/auth/login",
 	"/auth/password-reset",
 	"/auth/verify-reset-code",
 	"/auth/reset-password",
+	"/auth/swagger/*",
+	"/favicon.ico",
 }
 
 // Проверяет, является ли маршрут публичным
 func isPublicRoute(path string) bool {
 	log.Printf("Checking path: %s", path)
+	
+	// Специальная проверка для Swagger
+	if strings.HasPrefix(path, "/swagger/") || strings.HasPrefix(path, "/auth/swagger/") {
+		log.Printf("Path %s is a Swagger path, allowing access", path)
+		return true
+	}
+	
 	for _, route := range publicRoutes {
-		if strings.HasPrefix(path, route) {
-			log.Printf("Path %s matches public route %s", path, route)
+		// Проверка на точное совпадение
+		if route == path {
+			log.Printf("Path %s exactly matches public route %s", path, route)
+			return true
+		}
+		
+		// Проверка на префикс с wildcard
+		if strings.HasSuffix(route, "/*") {
+			prefix := strings.TrimSuffix(route, "/*")
+			if strings.HasPrefix(path, prefix) {
+				log.Printf("Path %s matches wildcard route %s", path, route)
+				return true
+			}
+		}
+		
+		// Проверка на обычный префикс
+		if !strings.HasSuffix(route, "/*") && strings.HasPrefix(path, route) {
+			log.Printf("Path %s matches prefix route %s", path, route)
 			return true
 		}
 	}
+	
 	log.Printf("Path %s is not public", path)
 	return false
 }
